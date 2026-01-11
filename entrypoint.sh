@@ -31,7 +31,16 @@ echo ""
 # Run immediately on startup if RUN_ON_STARTUP is set
 if [ "${RUN_ON_STARTUP:-true}" = "true" ]; then
     echo "Running initial data fetch..."
-    python main.py
+    if ! python main.py; then
+        echo ""
+        echo "ERROR: Initial run failed!"
+        if [ -f /app/chromedriver.log ]; then
+            echo "ChromeDriver log:"
+            echo "================="
+            cat /app/chromedriver.log
+        fi
+        exit 1
+    fi
     echo "Initial run complete at $(date)"
     echo ""
 fi

@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
 import time
@@ -256,7 +257,7 @@ def fetch_nutracheck_site_data(headless=True):
     # Set up Chrome options
     chrome_options = Options()
     if headless:
-        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless=new")
 
     # Required options for running Chrome in Docker
     chrome_options.add_argument("--no-sandbox")
@@ -264,9 +265,25 @@ def fetch_nutracheck_site_data(headless=True):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-setuid-sandbox")
+
+    # Set binary location explicitly
+    chrome_options.binary_location = "/usr/bin/google-chrome"
+
+    # Enable verbose logging for debugging
+    chrome_options.add_argument("--verbose")
+    chrome_options.add_argument("--log-level=0")
 
     # Pass the options when initializing the driver
-    driver = webdriver.Chrome(options=chrome_options)
+    print("[fetch_site_data] Starting Chrome WebDriver...")
+
+    # Enable verbose ChromeDriver logging
+    service = Service(log_output=os.path.join(os.getcwd(), 'chromedriver.log'), service_args=['--verbose'])
+
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    print("[fetch_site_data] Chrome WebDriver started successfully")
 
     # Load cookies if they exist, otherwise login and save cookies
     #if os.path.exists(cookies_file):

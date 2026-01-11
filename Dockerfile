@@ -53,7 +53,10 @@ RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 
     && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/ \
     && chmod +x /usr/local/bin/chromedriver \
     && rm -rf /tmp/chromedriver* \
-    && chromedriver --version
+    && chromedriver --version \
+    && echo "Testing Chrome binary..." \
+    && google-chrome --version \
+    && google-chrome --headless --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && echo "Chrome headless test successful" || echo "WARNING: Chrome headless test failed"
 
 # Set working directory
 WORKDIR /app
