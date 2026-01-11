@@ -1,0 +1,28 @@
+# Environment variables
+.env
+
+# Credentials and sensitive data
+cookies.pkl
+
+# Generated output files
+*.png
+*.html
+daily_data.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
