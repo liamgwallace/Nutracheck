@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  nutracheck:
+    image: ghcr.io/liamgwallace/nutracheck:latest
+    container_name: nutracheck-health-tracker
+    restart: unless-stopped
+
+    environment:
+      # GitHub Configuration
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_REPO: ${GITHUB_REPO:-liamgwallace/HealthData}
+
+      # Nutracheck Credentials
+      NUTRACHECK_EMAIL: ${NUTRACHECK_EMAIL}
+      NUTRACHECK_PASSWORD: ${NUTRACHECK_PASSWORD}
+
+      # Optional: File paths
+      KCAL_PLOT_FILE: ${KCAL_PLOT_FILE:-liam_kcal_plot.png}
+      MASS_FAT_PLOT_FILE: ${MASS_FAT_PLOT_FILE:-liam_mass_fat_plot.png}
+      DATA_FILE: ${DATA_FILE:-daily_data.json}
+      COOKIES_FILE: ${COOKIES_FILE:-cookies.pkl}
+
+      # Run on startup (set to false to wait for first scheduled run)
+      RUN_ON_STARTUP: ${RUN_ON_STARTUP:-true}
+
+      # Timezone for cron schedule (default UTC)
+      TZ: ${TZ:-UTC}
+
+    volumes:
+      # Persist data between container restarts
+      - nutracheck-data:/app/output
+      - nutracheck-cookies:/app
+
+    # Optional: Override the default cron schedule
+    # command: ["cron", "-f"]  # Run cron in foreground
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  nutracheck-data:
+    name: nutracheck-data
+  nutracheck-cookies:
+    name: nutracheck-cookies
