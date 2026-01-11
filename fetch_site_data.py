@@ -258,6 +258,13 @@ def fetch_nutracheck_site_data(headless=True):
     if headless:
         chrome_options.add_argument("--headless")
 
+    # Required options for running Chrome in Docker
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--window-size=1920,1080")
+
     # Pass the options when initializing the driver
     driver = webdriver.Chrome(options=chrome_options)
 
