@@ -1,5 +1,7 @@
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # Credentials and sensitive data
 cookies.pkl
@@ -15,6 +17,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.egg-info/
+dist/
+build/
 
 # Virtual environment
 venv/
@@ -26,3 +31,11 @@ ENV/
 .vscode/
 *.swp
 *.swo
+.DS_Store
+
+# Logs
+*.log
+/var/log/
+
+# Docker
+.dockerignore
