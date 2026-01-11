@@ -278,12 +278,21 @@ def fetch_nutracheck_site_data(headless=True):
 
     # Pass the options when initializing the driver
     print("[fetch_site_data] Starting Chrome WebDriver...")
+    print(f"[fetch_site_data] Chrome binary: {chrome_options.binary_location}")
+    print(f"[fetch_site_data] Chrome arguments: {chrome_options.arguments}")
 
-    # Enable verbose ChromeDriver logging
-    service = Service(log_output=os.path.join(os.getcwd(), 'chromedriver.log'), service_args=['--verbose'])
-
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    print("[fetch_site_data] Chrome WebDriver started successfully")
+    try:
+        # Enable verbose ChromeDriver logging
+        service = Service(log_output=os.path.join(os.getcwd(), 'chromedriver.log'), service_args=['--verbose'])
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        print("[fetch_site_data] Chrome WebDriver started successfully")
+    except Exception as e:
+        print(f"[fetch_site_data] ERROR starting Chrome: {e}")
+        if os.path.exists('chromedriver.log'):
+            print("[fetch_site_data] ChromeDriver log contents:")
+            with open('chromedriver.log', 'r') as f:
+                print(f.read())
+        raise
 
     # Load cookies if they exist, otherwise login and save cookies
     #if os.path.exists(cookies_file):
