@@ -16,8 +16,15 @@ import pickle
 import os
 import locale
 
-# Set the locale to English
-locale.setlocale(locale.LC_TIME, 'en_US.UTF-8')
+# Set the locale to English with fallback options
+try:
+    locale.setlocale(locale.LC_TIME, 'en_US.UTF-8')
+except locale.Error:
+    try:
+        locale.setlocale(locale.LC_TIME, 'C.UTF-8')
+    except locale.Error:
+        # If all else fails, use the default locale
+        pass
 
 def save_cookies(driver, location):
     """
