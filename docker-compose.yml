@@ -1,8 +1,9 @@
-version: '3.8'
-
 services:
   nutracheck:
-    image: ghcr.io/liamgwallace/nutracheck:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nutracheck:latest
     container_name: nutracheck-health-tracker
     restart: unless-stopped
 
