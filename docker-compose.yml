@@ -1,9 +1,7 @@
 services:
   nutracheck:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: nutracheck:latest
+    image: ghcr.io/liamgwallace/nutracheck:latest
+    pull_policy: always
     container_name: nutracheck-health-tracker
     restart: unless-stopped
 
@@ -16,11 +14,11 @@ services:
       NUTRACHECK_EMAIL: ${NUTRACHECK_EMAIL}
       NUTRACHECK_PASSWORD: ${NUTRACHECK_PASSWORD}
 
-      # Optional: File paths
-      KCAL_PLOT_FILE: ${KCAL_PLOT_FILE:-liam_kcal_plot.png}
-      MASS_FAT_PLOT_FILE: ${MASS_FAT_PLOT_FILE:-liam_mass_fat_plot.png}
-      DATA_FILE: ${DATA_FILE:-daily_data.json}
-      COOKIES_FILE: ${COOKIES_FILE:-cookies.pkl}
+      # File paths - save to /app/output for persistence
+      KCAL_PLOT_FILE: ${KCAL_PLOT_FILE:-/app/output/liam_kcal_plot.png}
+      MASS_FAT_PLOT_FILE: ${MASS_FAT_PLOT_FILE:-/app/output/liam_mass_fat_plot.png}
+      DATA_FILE: ${DATA_FILE:-/app/output/daily_data.json}
+      COOKIES_FILE: ${COOKIES_FILE:-/app/output/cookies.pkl}
 
       # Run on startup (set to false to wait for first scheduled run)
       RUN_ON_STARTUP: ${RUN_ON_STARTUP:-true}
@@ -29,9 +27,8 @@ services:
       TZ: ${TZ:-UTC}
 
     volumes:
-      # Persist data between container restarts
+      # Only persist data files, NOT the entire /app directory
       - nutracheck-data:/app/output
-      - nutracheck-cookies:/app
 
     # Optional: Override the default cron schedule
     # command: ["cron", "-f"]  # Run cron in foreground
@@ -45,5 +42,3 @@ services:
 volumes:
   nutracheck-data:
     name: nutracheck-data
-  nutracheck-cookies:
-    name: nutracheck-cookies
