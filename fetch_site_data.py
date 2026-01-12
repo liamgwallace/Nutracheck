@@ -293,7 +293,7 @@ def fetch_nutracheck_site_data(headless=True):
             print("[fetch_site_data] ChromeDriver log contents:")
             with open('chromedriver.log', 'r') as f:
                 #print(f.read())
-                print("logs are really long!!)
+                print("logs are really long!!")
         raise
 
     # Load cookies if they exist, otherwise login and save cookies
