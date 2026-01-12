@@ -231,6 +231,7 @@ def calc_navy_fat(data):
     return data
 
 def fetch_nutracheck_site_data(headless=True):
+    print("fetch_nutracheck_site_data: 1")
     # Load environment variables from .env file if it exists
     try:
         from dotenv import load_dotenv
@@ -277,7 +278,7 @@ def fetch_nutracheck_site_data(headless=True):
     chrome_options.add_argument("--log-level=0")
 
     # Pass the options when initializing the driver
-    print("[fetch_site_data] Starting Chrome WebDriver...")
+    print("[fetch_site_data] Starting Chrome WebDriver...V1")
     print(f"[fetch_site_data] Chrome binary: {chrome_options.binary_location}")
     print(f"[fetch_site_data] Chrome arguments: {chrome_options.arguments}")
 
