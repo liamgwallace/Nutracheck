@@ -231,16 +231,12 @@ def calc_navy_fat(data):
     return data
 
 def fetch_nutracheck_site_data(headless=True):
-    print("fetch_nutracheck_site_data: 1")
     # Load environment variables from .env file if it exists
     try:
         from dotenv import load_dotenv
         load_dotenv()
-        print("[fetch_site_data] Loaded environment variables from .env file")
-    except ImportError:
-        print("[fetch_site_data] python-dotenv not installed, using system environment variables only")
-    except Exception as e:
-        print(f"[fetch_site_data] Warning: Could not load .env file: {e}")
+    except:
+        pass  # Use system environment variables
 
     # Get credentials from environment variables
     username = os.getenv('NUTRACHECK_EMAIL')
@@ -249,11 +245,8 @@ def fetch_nutracheck_site_data(headless=True):
 
     # Validate required environment variables
     if not username or not password:
-        print("[fetch_site_data] ERROR: NUTRACHECK_EMAIL and NUTRACHECK_PASSWORD environment variables are required!")
-        print("[fetch_site_data] Please set them in .env file or as environment variables")
+        print("[fetch_site_data] ERROR: Missing credentials (NUTRACHECK_EMAIL/PASSWORD)")
         exit(1)
-
-    print(f"[fetch_site_data] Using email: {username[:3]}...{username[-10:]}")
 
     # Set up Chrome options
     chrome_options = Options()
@@ -273,27 +266,13 @@ def fetch_nutracheck_site_data(headless=True):
     # Set binary location explicitly
     chrome_options.binary_location = "/usr/bin/google-chrome"
 
-    # Enable verbose logging for debugging
-    chrome_options.add_argument("--verbose")
-    chrome_options.add_argument("--log-level=0")
-
-    # Pass the options when initializing the driver
-    print("[fetch_site_data] Starting Chrome WebDriver...V1")
-    #print(f"[fetch_site_data] Chrome binary: {chrome_options.binary_location}")
-    #print(f"[fetch_site_data] Chrome arguments: {chrome_options.arguments}")
+    print("[fetch_site_data] Starting Chrome WebDriver...")
 
     try:
-        # Enable verbose ChromeDriver logging
-        service = Service(log_output=os.path.join(os.getcwd(), 'chromedriver.log'), service_args=['--verbose'])
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        print("[fetch_site_data] Chrome WebDriver started successfully")
+        driver = webdriver.Chrome(options=chrome_options)
+        print("[fetch_site_data] Chrome started successfully")
     except Exception as e:
-        print(f"[fetch_site_data] ERROR starting Chrome: {e}")
-        if os.path.exists('chromedriver.log'):
-            print("[fetch_site_data] ChromeDriver log contents:")
-            with open('chromedriver.log', 'r') as f:
-                #print(f.read())
-                print("logs are really long!!")
+        print(f"[fetch_site_data] ERROR: Failed to start Chrome - {e}")
         raise
 
     # Load cookies if they exist, otherwise login and save cookies
@@ -334,29 +313,21 @@ def fetch_nutracheck_site_data(headless=True):
     data_kcal = calc_kcal(data_kcal)
     data_mass_waist_navy = calc_navy_fat(data_mass_waist)
 
-    print(f"data_kcal:")
-    for element in data_kcal:
-        print(element)
-    print(f"data_mass_waist:")
-    for element in data_mass_waist:
-        print(element)
+    print(f"[fetch_site_data] Fetched {len(data_kcal)} days of calorie data, {len(data_mass_waist_navy)} weight/waist records")
 
     # Get data file path from environment variables
     data_file = os.getenv('DATA_FILE', 'daily_data.json')
-    print(f"[fetch_site_data] Saving to data file: {data_file}")
 
     save_to_tinydb(data= data_kcal, db_path=data_file, db_table='daily_kcal')
     save_to_tinydb(data= data_mass_waist_navy, db_path=data_file, db_table='daily_mass_waist')
+    print(f"[fetch_site_data] Data saved to {data_file}")
 
 if __name__ == "__main__":
     # Load environment variables from .env file if it exists
     try:
         from dotenv import load_dotenv
         load_dotenv()
-        print("[fetch_site_data] Loaded environment variables from .env file")
-    except ImportError:
-        print("[fetch_site_data] python-dotenv not installed, using system environment variables only")
-    except Exception as e:
-        print(f"[fetch_site_data] Warning: Could not load .env file: {e}")
+    except:
+        pass  # Use system environment variables
 
     fetch_nutracheck_site_data(headless=False)
