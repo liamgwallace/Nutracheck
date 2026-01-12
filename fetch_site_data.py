@@ -231,6 +231,7 @@ def calc_navy_fat(data):
     return data
 
 def fetch_nutracheck_site_data(headless=True):
+    print("[fetch_site_data] Starting data fetch...")
     # Load environment variables from .env file if it exists
     try:
         from dotenv import load_dotenv
@@ -247,6 +248,8 @@ def fetch_nutracheck_site_data(headless=True):
     if not username or not password:
         print("[fetch_site_data] ERROR: Missing credentials (NUTRACHECK_EMAIL/PASSWORD)")
         exit(1)
+
+    print(f"[fetch_site_data] Using account: {username[:3]}...@{username.split('@')[1]}")
 
     # Set up Chrome options
     chrome_options = Options()
@@ -292,15 +295,19 @@ def fetch_nutracheck_site_data(headless=True):
     target_url_mass = "https://www.nutracheck.co.uk/Diary/MyProgress?measureID=1"
     target_url_waist = "https://www.nutracheck.co.uk/Diary/MyProgress?measureID=2"
 
+    print("[fetch_site_data] Fetching calorie diary...")
     driver.get(target_url_kcal)
-    time.sleep(1)  # Adjust time as necessary
+    time.sleep(1)
     html_content_kcal = driver.page_source
+
+    print("[fetch_site_data] Fetching weight data...")
     driver.get(target_url_mass)
-    time.sleep(1)  # Adjust time as necessary
+    time.sleep(1)
     html_content_mass = driver.page_source
 
+    print("[fetch_site_data] Fetching waist measurements...")
     driver.get(target_url_waist)
-    time.sleep(1)  # Adjust time as necessary
+    time.sleep(1)
     html_content_waist = driver.page_source
     driver.quit()
 
@@ -313,14 +320,23 @@ def fetch_nutracheck_site_data(headless=True):
     data_kcal = calc_kcal(data_kcal)
     data_mass_waist_navy = calc_navy_fat(data_mass_waist)
 
-    print(f"[fetch_site_data] Fetched {len(data_kcal)} days of calorie data, {len(data_mass_waist_navy)} weight/waist records")
+    print(f"\n[fetch_site_data] === Calorie Data ({len(data_kcal)} days) ===")
+    for entry in data_kcal:
+        print(f"  {entry['Date']}: {entry.get('net_kcal', 0):.0f} kcal (B:{entry.get('Breakfast',0):.0f} L:{entry.get('Lunch',0):.0f} D:{entry.get('Dinner',0):.0f} Ex:{entry.get('Exercise',0):.0f})")
+
+    print(f"\n[fetch_site_data] === Weight/Waist Data ({len(data_mass_waist_navy)} records) ===")
+    for entry in data_mass_waist_navy:
+        mass = entry.get('Mass', '---')
+        waist = entry.get('Waist', '---')
+        bf = entry.get('Navy_fat', '---')
+        print(f"  {entry['Date']}: {mass} kg, {waist} cm, {bf}% BF")
 
     # Get data file path from environment variables
     data_file = os.getenv('DATA_FILE', 'daily_data.json')
 
     save_to_tinydb(data= data_kcal, db_path=data_file, db_table='daily_kcal')
     save_to_tinydb(data= data_mass_waist_navy, db_path=data_file, db_table='daily_mass_waist')
-    print(f"[fetch_site_data] Data saved to {data_file}")
+    print(f"\n[fetch_site_data] Data saved to {data_file}")
 
 if __name__ == "__main__":
     # Load environment variables from .env file if it exists
