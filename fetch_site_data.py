@@ -279,8 +279,8 @@ def fetch_nutracheck_site_data(headless=True):
 
     # Pass the options when initializing the driver
     print("[fetch_site_data] Starting Chrome WebDriver...V1")
-    print(f"[fetch_site_data] Chrome binary: {chrome_options.binary_location}")
-    print(f"[fetch_site_data] Chrome arguments: {chrome_options.arguments}")
+    #print(f"[fetch_site_data] Chrome binary: {chrome_options.binary_location}")
+    #print(f"[fetch_site_data] Chrome arguments: {chrome_options.arguments}")
 
     try:
         # Enable verbose ChromeDriver logging
