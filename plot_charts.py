@@ -24,8 +24,14 @@ def read_and_process_data(json_file):
     # Process 'daily_mass_waist'
     daily_mass_waist_data = data.get('daily_mass_waist', {})
     df_daily_mass_waist = pd.DataFrame.from_dict(daily_mass_waist_data, orient='index')
-    df_daily_mass_waist['Date'] = pd.to_datetime(df_daily_mass_waist['Date'])
-    df_daily_mass_waist = df_daily_mass_waist.sort_values(by='Date')
+
+    # Handle empty dataframe
+    if not df_daily_mass_waist.empty and 'Date' in df_daily_mass_waist.columns:
+        df_daily_mass_waist['Date'] = pd.to_datetime(df_daily_mass_waist['Date'])
+        df_daily_mass_waist = df_daily_mass_waist.sort_values(by='Date')
+    else:
+        # Create empty dataframe with expected columns
+        df_daily_mass_waist = pd.DataFrame(columns=['Date', 'Mass', 'Waist', 'Navy_fat'])
 
     return df_daily_kcal, df_daily_mass_waist
 
@@ -55,50 +61,56 @@ def plot_mass_and_fat(df, show_charts):
     mass_df = df.dropna(subset=['Mass'])
     fat_df = df.dropna(subset=['Navy_fat'])
 
+    # Warn if no data
+    if mass_df.empty:
+        print("[plot_charts] WARNING: No weight data available to plot")
+
     # Create a subplot with 2 y-axes
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Plot Mass (KG) with trend line
-    fig.add_trace(
-        go.Scatter(
-            x=mass_df['Date'],
-            y=mass_df['Mass'],
-            mode='lines+markers',
-            name='Mass (KG)',
-            marker=dict(
-                color='#008837',
-                size=10,
+    # Check if there's any mass data to plot
+    if not mass_df.empty:
+        # Plot Mass (KG) with trend line
+        fig.add_trace(
+            go.Scatter(
+                x=mass_df['Date'],
+                y=mass_df['Mass'],
+                mode='lines+markers',
+                name='Mass (KG)',
+                marker=dict(
+                    color='#008837',
+                    size=10,
+                    line=dict(
+                        color='lightgrey',
+                        width=1
+                    )
+                ),
                 line=dict(
-                    color='lightgrey',
-                    width=1
+                    color='#a6dba0',
+                    width=4
                 )
             ),
-            line=dict(
-                color='#a6dba0',
-                width=4
-            )
-        ),
-        secondary_y=False
-    )
+            secondary_y=False
+        )
 
-    # Linear trend line for Mass
-    slope, intercept, _, _, _ = linregress(mass_df['Date'].astype('int64'), mass_df['Mass'])
-    extended_dates = pd.date_range(start=mass_df['Date'].min(), end=pd.Timestamp('2027-11-08'))
-    trend_line_mass = slope * extended_dates.astype('int64') + intercept
-    fig.add_trace(
-        go.Scatter(
-            x=extended_dates,
-            y=trend_line_mass,
-            mode='lines',
-            name='Mass Trend',
-            line=dict(
-                color='#008837',
-                width=1,
-                dash='dash'
-            )
-        ),
-        secondary_y=False
-    )
+        # Linear trend line for Mass
+        slope, intercept, _, _, _ = linregress(mass_df['Date'].astype('int64'), mass_df['Mass'])
+        extended_dates = pd.date_range(start=mass_df['Date'].min(), end=pd.Timestamp('2027-11-08'))
+        trend_line_mass = slope * extended_dates.astype('int64') + intercept
+        fig.add_trace(
+            go.Scatter(
+                x=extended_dates,
+                y=trend_line_mass,
+                mode='lines',
+                name='Mass Trend',
+                line=dict(
+                    color='#008837',
+                    width=1,
+                    dash='dash'
+                )
+            ),
+            secondary_y=False
+        )
 
     # Add goal line with milestone at 100kg
     fig.add_trace(
@@ -120,47 +132,48 @@ def plot_mass_and_fat(df, show_charts):
         secondary_y=False
     )
 
-    # Plot Navy Fat % with trend line
-    fig.add_trace(
-        go.Scatter(
-            x=fat_df['Date'],
-            y=fat_df['Navy_fat'],
-            mode='lines+markers',
-            name='Body Fat %',
-            marker=dict(
-                color='#7b3294',
-                size=10,
+    # Plot Navy Fat % with trend line (only if we have mass data for extended_dates)
+    if not fat_df.empty and not mass_df.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=fat_df['Date'],
+                y=fat_df['Navy_fat'],
+                mode='lines+markers',
+                name='Body Fat %',
+                marker=dict(
+                    color='#7b3294',
+                    size=10,
+                    line=dict(
+                        color='lightgrey',
+                        width=2
+                    )
+                ),
                 line=dict(
-                    color='lightgrey',
-                    width=2
+                    color='#c2a5cf',
+                    width=4
+                )
+
+            ),
+            secondary_y=True
+        )
+
+        # Linear trend line for Navy Fat
+        slope, intercept, _, _, _ = linregress(fat_df['Date'].astype('int64'), fat_df['Navy_fat'])
+        trend_line_fat = slope * extended_dates.astype('int64') + intercept
+        fig.add_trace(
+            go.Scatter(
+                x=extended_dates,
+                y=trend_line_fat,
+                mode='lines',
+                name='Fat Trend',
+                line=dict(
+                    color='#c2a5cf',
+                    width=2,
+                    dash='dash'
                 )
             ),
-            line=dict(
-                color='#c2a5cf',
-                width=4
-            )
-
-        ),
-        secondary_y=True
-    )
-
-    # Linear trend line for Navy Fat
-    slope, intercept, _, _, _ = linregress(fat_df['Date'].astype('int64'), fat_df['Navy_fat'])
-    trend_line_fat = slope * extended_dates.astype('int64') + intercept
-    fig.add_trace(
-        go.Scatter(
-            x=extended_dates,
-            y=trend_line_fat,
-            mode='lines',
-            name='Fat Trend',
-            line=dict(
-                color='#c2a5cf',
-                width=2,
-                dash='dash'
-            )
-        ),
-        secondary_y=True
-    )
+            secondary_y=True
+        )
 
     # Customize the layout
     fig.update_layout(
@@ -210,13 +223,17 @@ def plot_mass_and_fat(df, show_charts):
     # Show the plot
     if show_charts:
         fig.show()
+
+    # Get output file paths from environment variables
+    png_file = os.getenv('MASS_FAT_PLOT_FILE', 'liam_mass_fat_plot.png')
+    html_file = png_file.replace('.png', '.html')
+
     # Export the plot to an HTML file
-    html_file = 'liam_mass_fat_plot.html'
     fig.write_html(html_file)
 
     # Save the plot as a PNG file
-    png_file = 'liam_mass_fat_plot.png'
     fig.write_image(png_file)
+    print(f"[plot_charts] Mass/fat chart saved to {png_file}")
 
 # Function to plot calorie data
 def plot_calorie_data(df, show_charts):
@@ -320,13 +337,17 @@ def plot_calorie_data(df, show_charts):
     # Show the plot
     if show_charts:
         fig.show()
+
+    # Get output file paths from environment variables
+    png_file = os.getenv('KCAL_PLOT_FILE', 'liam_kcal_plot.png')
+    html_file = png_file.replace('.png', '.html')
+
     # Export the plot to an HTML file
-    html_file = 'liam_kcal_plot.html'
     fig.write_html(html_file)
 
     # Save the plot as a PNG file
-    png_file = 'liam_kcal_plot.png'
     fig.write_image(png_file)
+    print(f"[plot_charts] Calorie chart saved to {png_file}")
 
 def create_charts(show_charts):
     # Get data file path from environment variables
