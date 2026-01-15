@@ -1,0 +1,45 @@
+# Portainer stack for Nutracheck Health Tracker Web App
+# Copy this entire file into Portainer > Stacks > Add Stack > Web Editor
+
+services:
+  nutracheck:
+    image: ghcr.io/liamgwallace/nutracheck:latest
+    container_name: nutracheck-health-tracker
+    restart: unless-stopped
+
+    environment:
+      # Mode: webapp (default) or cron
+      MODE: webapp
+
+      # Nutracheck Credentials (REQUIRED - fill in your details)
+      NUTRACHECK_EMAIL: your_email@example.com
+      NUTRACHECK_PASSWORD: your_password_here
+
+      # File paths - charts saved to volume for persistence
+      KCAL_PLOT_FILE: /app/output/liam_kcal_plot.png
+      MASS_FAT_PLOT_FILE: /app/output/liam_mass_fat_plot.png
+      DATA_FILE: /app/output/daily_data.json
+      COOKIES_FILE: /app/output/cookies.pkl
+
+      # Don't run on startup (charts will be generated when you click refresh)
+      RUN_ON_STARTUP: false
+
+      # Set your timezone (e.g., America/New_York, Europe/London)
+      TZ: UTC
+
+    ports:
+      # Access web app at http://your-server-ip:5000
+      - "5000:5000"
+
+    volumes:
+      # Persist data files (charts, database, cookies)
+      - nutracheck-data:/app/output
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  nutracheck-data:

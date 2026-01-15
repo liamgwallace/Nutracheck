@@ -1,0 +1,15 @@
+[Unit]
+Description=Health Tracker Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/Nutracheck
+Environment="PATH=/home/user/Nutracheck/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/user/Nutracheck/venv/bin/python /home/user/Nutracheck/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

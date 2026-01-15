@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+
+        .header {
+            background-color: #2a2a2a;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #f0f0f0;
+        }
+
+        .refresh-btn {
+            background-color: #008837;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background-color: #00a843;
+        }
+
+        .refresh-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin: 1rem 2rem;
+            padding: 1rem;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #1b5e20;
+            border: 1px solid #2e7d32;
+            display: block;
+        }
+
+        .message.error {
+            background-color: #5e1b1b;
+            border: 1px solid #7d2e2e;
+            display: block;
+        }
+
+        .message.info {
+            background-color: #1b3d5e;
+            border: 1px solid #2e5a7d;
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #2a2a2a;
+            border-bottom: 2px solid #444;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            color: #aaa;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background-color: #333;
+            color: #f0f0f0;
+        }
+
+        .tab.active {
+            background-color: #343434;
+            color: #f0f0f0;
+            border-bottom: 3px solid #008837;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 0;
+            width: 100%;
+            height: calc(100vh - 180px);
+            overflow: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Health Tracker Dashboard</h1>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+            Refresh Data
+        </button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="openTab(event, 'calories')">Daily Calories</button>
+        <button class="tab" onclick="openTab(event, 'mass-fat')">Mass & Body Fat</button>
+    </div>
+
+    <div id="calories" class="tab-content active">
+        <iframe src="/chart/calories" id="caloriesFrame"></iframe>
+    </div>
+
+    <div id="mass-fat" class="tab-content">
+        <iframe src="/chart/mass-fat" id="massFatFrame"></iframe>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+
+            // Remove active class from all tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+
+            // Show the selected tab and mark as active
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = 'message ' + type;
+
+            // Auto-hide after 5 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = 'Refreshing...';
+
+            showMessage('Fetching data from Nutracheck...', 'info');
+
+            fetch('/refresh', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage(data.message, 'info');
+
+                    // Poll for completion
+                    const pollInterval = setInterval(() => {
+                        fetch('/status')
+                        .then(r => r.json())
+                        .then(status => {
+                            if (!status.refreshing) {
+                                clearInterval(pollInterval);
+                                showMessage('Data refreshed successfully! Reloading charts...', 'success');
+
+                                // Reload both iframes
+                                setTimeout(() => {
+                                    document.getElementById('caloriesFrame').src = '/chart/calories?' + new Date().getTime();
+                                    document.getElementById('massFatFrame').src = '/chart/mass-fat?' + new Date().getTime();
+                                    btn.disabled = false;
+                                    btn.textContent = 'Refresh Data';
+                                }, 1000);
+                            }
+                        });
+                    }, 2000);
+                } else {
+                    showMessage(data.message, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Refresh Data';
+                }
+            })
+            .catch(error => {
+                showMessage('Error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Refresh Data';
+            });
+        }
+    </script>
+</body>
+</html>
