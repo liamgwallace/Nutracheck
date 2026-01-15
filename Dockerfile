@@ -68,11 +68,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY *.py ./
 COPY CLAUDE.md ./
+COPY templates/ ./templates/
 
 # Create directory for output files
 RUN mkdir -p /app/output
 
-# Copy cron configuration
+# Copy cron configuration (for backward compatibility with cron mode)
 COPY crontab /etc/cron.d/nutracheck-cron
 RUN chmod 0644 /etc/cron.d/nutracheck-cron && \
     crontab /etc/cron.d/nutracheck-cron && \
@@ -85,5 +86,11 @@ RUN chmod +x /entrypoint.sh
 # Set environment variable for Chrome to run in headless mode
 ENV CHROME_BIN=/usr/bin/google-chrome-stable
 ENV DISPLAY=:99
+
+# Default to web app mode (can override with MODE=cron)
+ENV MODE=webapp
+
+# Expose Flask port
+EXPOSE 5000
 
 ENTRYPOINT ["/entrypoint.sh"]
