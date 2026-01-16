@@ -90,14 +90,15 @@ def login(driver, url, username, password):
 
 def parse_html_waist(html_content):
     """
-    Parses the HTML content and extracts weight entries, stripping the 'cm' waist from data
+    Parses the HTML content and extracts waist entries, stripping the 'cm' from data
     and preserving the date in its original format.
 
     :param html_content: HTML content of the webpage.
-    :return: List of extracted data with dates and weight values.
+    :return: List of extracted data with dates and waist values.
     """
     soup = BeautifulSoup(html_content, 'html.parser')
-    waist_entries = soup.find_all('table', class_='dataTableContent dataTableOther')
+    # Try both old and new table classes
+    waist_entries = soup.find_all('table', class_='dataTableContent dataTableOther') or soup.find_all('table', class_='dataTableContent')
     data = []
 
     for table in waist_entries:
@@ -108,7 +109,16 @@ def parse_html_waist(html_content):
 
             if date_td and waist_td:
                 date_text = date_td.text.strip()
-                waist_text = waist_td.text.replace('cm', '').strip()
+
+                # Try to find the CM span (new format)
+                cm_span = waist_td.find('span', class_='lengthDisplayCM')
+                if cm_span:
+                    # Extract CM value
+                    waist_text = cm_span.text.replace('cm', '').strip()
+                else:
+                    # Fall back to old format
+                    waist_text = waist_td.text.replace('cm', '').strip()
+
                 date_obj = datetime.strptime(date_text, '%a %d %b %Y')
                 formatted_date = date_obj.strftime('%Y-%m-%d')
 
@@ -125,15 +135,27 @@ def parse_html_mass(html_content):
         rows = table.find_all('tr')
         for row in rows:
             date_td = row.find('td', class_='colDate')
-            weight_td = row.find('td', class_='colWeight colorPrimary')
+            # Try both old and new class names
+            weight_td = row.find('td', class_='colWeight colorPrimary') or row.find('td', class_='colWeight text-primary')
 
             if date_td and weight_td:
                 date_text = date_td.text.strip()
-                weight_text = weight_td.text.replace(' Kg', '').strip()
+
+                # Try to find the grams span (new format)
+                grams_span = weight_td.find('span', class_='weightDisplayG')
+                if grams_span:
+                    # Extract grams and convert to kg
+                    grams_text = grams_span.text.replace('g', '').strip()
+                    weight_kg = float(grams_text) / 1000
+                else:
+                    # Fall back to old format
+                    weight_text = weight_td.text.replace(' Kg', '').strip()
+                    weight_kg = float(weight_text)
+
                 date_obj = datetime.strptime(date_text, '%a %d %b %Y')
                 formatted_date = date_obj.strftime('%Y-%m-%d')
 
-                data.append({'Date': formatted_date, 'Mass': float(weight_text)})
+                data.append({'Date': formatted_date, 'Mass': weight_kg})
 
     return data
 
@@ -266,8 +288,9 @@ def fetch_nutracheck_site_data(headless=True):
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-setuid-sandbox")
 
-    # Set binary location explicitly
-    chrome_options.binary_location = "/usr/bin/google-chrome"
+    # Set binary location explicitly for Linux/Docker only
+    if os.name != 'nt':  # Not Windows
+        chrome_options.binary_location = "/usr/bin/google-chrome"
 
     print("[fetch_site_data] Starting Chrome WebDriver...")
 

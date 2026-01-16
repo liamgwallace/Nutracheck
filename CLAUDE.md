@@ -6,9 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Python-based health data tracker that scrapes nutrition and fitness data from Nutracheck.co.uk, processes the data, generates visualizations, and uploads them to GitHub. The application tracks daily calorie intake, exercise, body weight, waist measurements, and calculated body fat percentage.
 
+The application supports **two deployment modes**:
+1. **Batch/Cron Mode** - Scheduled execution with GitHub upload (original mode)
+2. **Web App Mode** - Interactive Flask dashboard for on-demand data refresh
+
 ## Running the Application
 
-### Main Execution
+### Web App Mode (Flask Dashboard)
+
+**Start the web server:**
+```bash
+python app.py
+```
+
+Access at `http://localhost:5000`. The web interface provides:
+- Two chart tabs (Calories and Mass/Fat) with interactive Plotly visualizations
+- "Refresh Data" button to fetch latest data from Nutracheck on-demand
+- Real-time status updates during refresh
+
+Environment variables:
+- `NUTRACHECK_EMAIL` and `NUTRACHECK_PASSWORD` (required)
+- `KCAL_PLOT_FILE` and `MASS_FAT_PLOT_FILE` (optional)
+
+### Batch/Cron Mode (GitHub Upload)
+
+**Run the complete pipeline:**
 ```bash
 python main.py
 ```
@@ -18,6 +40,10 @@ This orchestrates the full pipeline:
 2. Processes and stores data in `daily_data.json` using TinyDB
 3. Generates two PNG charts (`liam_kcal_plot.png` and `liam_mass_fat_plot.png`)
 4. Uploads charts to GitHub repository
+
+Environment variables:
+- `NUTRACHECK_EMAIL` and `NUTRACHECK_PASSWORD` (required)
+- `GITHUB_TOKEN` and `GITHUB_REPO` (required for upload)
 
 ### Running Individual Components
 
@@ -47,9 +73,29 @@ python git_upload.py
 runscript.bat
 ```
 
+### Docker Deployment
+
+The application supports Docker deployment in both modes:
+
+**Web App Mode (default):**
+```bash
+docker-compose up -d
+# Access at http://localhost:5000
+```
+
+**Cron Mode (scheduled execution):**
+```bash
+# Set MODE=cron in .env file
+docker-compose up -d
+```
+
+Docker uses environment variables from `.env` file. See `DOCKER_README.md` for full deployment details.
+
 ## Architecture
 
 ### Data Flow Pipeline
+
+The core data pipeline consists of five stages, with different endpoints depending on deployment mode:
 
 1. **Web Scraping** (`fetch_site_data.py`)
    - Uses Selenium WebDriver to automate Nutracheck login
@@ -79,10 +125,27 @@ runscript.bat
      - **Mass/Fat Chart**: Dual Y-axis with trend lines and weight loss goal projection
    - Custom EMA calculation that handles missing/zero values
 
-5. **GitHub Integration** (`git_upload.py`)
-   - Uses GitHub REST API to upload/update PNG files
-   - SHA-based content detection for updates vs. new uploads
-   - Base64 encoding for binary file transfer
+5. **Output** (mode-dependent)
+   - **Batch/Cron Mode**: `git_upload.py` uploads PNG files to GitHub via REST API
+   - **Web App Mode**: `app.py` serves HTML charts through Flask with on-demand refresh
+
+### Application Modes
+
+**Batch/Cron Mode (`main.py`):**
+- Entry point for scheduled execution
+- Calls: fetch_site_data → plot_charts → git_upload
+- Generates PNG charts for GitHub upload
+- Requires `GITHUB_TOKEN` and `GITHUB_REPO`
+
+**Web App Mode (`app.py`):**
+- Flask server with REST endpoints
+- Routes:
+  - `/` - Main page with tabbed interface (`templates/index.html`)
+  - `/chart/<chart_type>` - Serves HTML chart files
+  - `/refresh` (POST) - Triggers background data fetch in separate thread
+  - `/status` - Returns refresh progress status
+- Generates HTML charts for interactive viewing
+- Uses threading to prevent blocking during data refresh
 
 ### Key Data Structures
 
@@ -112,26 +175,61 @@ runscript.bat
 
 ### Authentication & Credentials
 
-Credentials are hardcoded in the source files:
-- Nutracheck login: `fetch_site_data.py:244-245`
-- GitHub token: `main.py:11`, `git_upload.py:65`
+The application supports both environment variables (recommended) and hardcoded credentials (legacy):
 
-**IMPORTANT:** These credentials are exposed in plain text. When modifying authentication code, suggest moving to environment variables or a separate configuration file.
+**Environment Variables (Recommended):**
+- `NUTRACHECK_EMAIL` - Nutracheck login email
+- `NUTRACHECK_PASSWORD` - Nutracheck password
+- `GITHUB_TOKEN` - GitHub Personal Access Token (required for batch/cron mode)
+- `GITHUB_REPO` - Target repository in format `username/repository`
+
+Both `fetch_site_data.py` and `main.py` attempt to load environment variables from a `.env` file using `python-dotenv`. If environment variables are not set, the code falls back to hardcoded values in:
+- Nutracheck login: `fetch_site_data.py` (around line 244-245)
+- GitHub token: `main.py:14`, `git_upload.py` (around line 65)
+
+**IMPORTANT:** When modifying authentication code, prefer environment variables. Never commit `.env` files to version control.
 
 ## Dependencies
 
-Key Python packages (no requirements.txt present):
+Key Python packages:
 - `selenium`: Web automation
 - `beautifulsoup4`: HTML parsing
 - `tinydb`: JSON-based database
 - `pandas`: Data manipulation
 - `plotly`: Chart generation (includes Kaleido for PNG export)
 - `scipy`: Statistical analysis (linear regression, EMA)
-- `matplotlib`: Alternative plotting (not actively used in main flow)
+- `flask`: Web server for dashboard mode
+- `python-dotenv`: Environment variable management
 - `requests`: GitHub API calls
+- `matplotlib`: Alternative plotting (not actively used in main flow)
 
 WebDriver:
 - Chrome WebDriver required for Selenium automation
+- In Docker, Chrome and ChromeDriver are automatically installed
+
+## Environment Configuration
+
+All configuration is managed through environment variables, loaded from `.env` file:
+
+**Required for All Modes:**
+- `NUTRACHECK_EMAIL` - Nutracheck account email
+- `NUTRACHECK_PASSWORD` - Nutracheck account password
+
+**Required for Batch/Cron Mode:**
+- `GITHUB_TOKEN` - GitHub Personal Access Token with `repo` scope
+- `GITHUB_REPO` - Target repository (format: `username/repository`)
+
+**Optional:**
+- `MODE` - Deployment mode: `webapp` (default) or `cron`
+- `KCAL_PLOT_FILE` - Calorie chart filename (default: `liam_kcal_plot.png`)
+- `MASS_FAT_PLOT_FILE` - Weight/fat chart filename (default: `liam_mass_fat_plot.png`)
+- `DATA_FILE` - JSON database filename (default: `daily_data.json`)
+- `COOKIES_FILE` - Cookie storage filename (default: `cookies.pkl`)
+- `TZ` - Timezone for Docker cron (default: `UTC`)
+- `RUN_ON_STARTUP` - Run immediately when container starts
+  - Cron mode: `true` (default)
+  - Web app mode: `false` (default, use refresh button instead)
+- `HOST_PORT` - Web app port mapping (default: `5000`)
 
 ## Important Implementation Details
 
@@ -156,9 +254,28 @@ Both charts use consistent dark theme (`#343434` background) with custom color s
 - Calorie chart: Purple/green gradient for meal categories
 - Mass/Fat chart: Green (mass) and purple (body fat) with trend lines extending to Nov 2027
 
-## Auxiliary Files
+## Project Files
 
-- `web_macro_tools.py`: Standalone GUI tool for recording and replaying web interactions (not used in main pipeline)
-- `run/`: Contains duplicate output files and shortcuts
-- `cookies.pkl`: Pickled session cookies (currently unused)
-- `*.html` and `*.png`: Generated chart outputs
+**Core Python Modules:**
+- `main.py` - Batch/cron mode entry point (fetch → plot → upload)
+- `app.py` - Web app mode entry point (Flask server)
+- `fetch_site_data.py` - Web scraping and data processing
+- `plot_charts.py` - Chart generation (HTML and PNG)
+- `git_upload.py` - GitHub upload functionality
+
+**Web App:**
+- `templates/index.html` - Web dashboard UI with tabbed charts
+
+**Documentation:**
+- `README.md` - User-facing setup and usage guide
+- `WEBAPP_README.md` - Web app specific documentation
+- `DOCKER_README.md` - Docker deployment guide
+- `PORTAINER_DEPLOY.md` - Portainer-specific instructions
+
+**Auxiliary:**
+- `web_macro_tools.py` - Standalone GUI tool for web interaction recording (not used in pipeline)
+- `run/` - Contains duplicate output files and shortcuts
+- `runscript.bat` - Windows batch execution script
+- `cookies.pkl` - Pickled session cookies (currently unused)
+- `daily_data.json` - TinyDB database (generated)
+- `*.html` and `*.png` - Generated chart outputs (generated)
