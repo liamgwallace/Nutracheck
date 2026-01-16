@@ -1,7 +1,7 @@
 import os
-from fetch_site_data import fetch_nutracheck_site_data
-from plot_charts import create_charts
-from git_upload import upload_file_to_github
+from nutracheck.scraper import fetch_nutracheck_site_data
+from nutracheck.visualizer import create_charts
+from nutracheck.uploader import upload_file_to_github
 
 # Load environment variables from .env file if it exists
 try:

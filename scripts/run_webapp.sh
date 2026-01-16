@@ -3,8 +3,8 @@
 
 echo "Starting Health Tracker Web App..."
 
-# Change to script directory
-cd "$(dirname "$0")"
+# Change to project root directory (parent of scripts/)
+cd "$(dirname "$0")/.."
 
 # Activate virtual environment if it exists
 if [ -d "venv" ]; then
@@ -24,4 +24,4 @@ echo "Access the dashboard at http://localhost:5000"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-python app.py
+python -m nutracheck.web.app
