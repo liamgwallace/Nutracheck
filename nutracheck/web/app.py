@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, send_file
-from fetch_site_data import fetch_nutracheck_site_data
-from plot_charts import create_charts
+from nutracheck.scraper import fetch_nutracheck_site_data
+from nutracheck.visualizer import create_charts
 import threading
 
 # Load environment variables from .env file if it exists

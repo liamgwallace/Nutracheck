@@ -62,19 +62,19 @@ RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt .
+COPY ../requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
-COPY *.py ./
-COPY CLAUDE.md ./
-COPY templates/ ./templates/
+# Copy application files (new structure)
+COPY ../main.py ./
+COPY ../nutracheck/ ./nutracheck/
+COPY ../docs/CLAUDE.md ./
 
 # Create directory for output files
 RUN mkdir -p /app/output
 
 # Copy cron configuration (for backward compatibility with cron mode)
-COPY crontab /etc/cron.d/nutracheck-cron
+COPY ../config/crontab /etc/cron.d/nutracheck-cron
 RUN chmod 0644 /etc/cron.d/nutracheck-cron && \
     crontab /etc/cron.d/nutracheck-cron && \
     touch /var/log/cron.log

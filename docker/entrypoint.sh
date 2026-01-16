@@ -66,7 +66,7 @@ else
     # Generate initial charts if they don't exist and RUN_ON_STARTUP is true
     if [ "${RUN_ON_STARTUP:-false}" = "true" ]; then
         echo "Generating initial charts..."
-        if python -c "from fetch_site_data import fetch_nutracheck_site_data; from plot_charts import create_charts; fetch_nutracheck_site_data(); create_charts(show_charts=False)"; then
+        if python -c "from nutracheck.scraper import fetch_nutracheck_site_data; from nutracheck.visualizer import create_charts; fetch_nutracheck_site_data(); create_charts(show_charts=False)"; then
             echo "Initial charts created successfully at $(date)"
         else
             echo "Warning: Could not generate initial charts. You can refresh data from the web UI."
@@ -76,5 +76,5 @@ else
 
     # Start Flask application
     echo "Starting Flask server..."
-    exec python app.py
+    exec python -m nutracheck.web.app
 fi

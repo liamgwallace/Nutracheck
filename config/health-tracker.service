@@ -7,7 +7,7 @@ Type=simple
 User=user
 WorkingDirectory=/home/user/Nutracheck
 Environment="PATH=/home/user/Nutracheck/venv/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/user/Nutracheck/venv/bin/python /home/user/Nutracheck/app.py
+ExecStart=/home/user/Nutracheck/venv/bin/python -m nutracheck.web.app
 Restart=always
 RestartSec=10
 
