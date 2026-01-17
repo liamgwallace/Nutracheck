@@ -46,6 +46,44 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  nutracheck-mcp:
+    image: ghcr.io/liamgwallace/nutracheck:latest
+    pull_policy: always
+    container_name: nutracheck-mcp-automation
+    restart: unless-stopped
+
+    environment:
+      # Mode: mcp for AI automation service
+      MODE: mcp
+
+      # Nutracheck Credentials (REQUIRED)
+      NUTRACHECK_EMAIL: ${NUTRACHECK_EMAIL}
+      NUTRACHECK_PASSWORD: ${NUTRACHECK_PASSWORD}
+
+      # AI Provider Configuration
+      AI_PROVIDER: ${AI_PROVIDER:-claude}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+
+      # Timezone
+      TZ: ${TZ:-UTC}
+
+    # MCP uses stdio transport, no ports needed
+    # stdin_open: true
+    # tty: true
+
+    volumes:
+      - mcp-data:/app/output
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   nutracheck-data:
     name: nutracheck-data
+  mcp-data:
+    name: nutracheck-mcp-data

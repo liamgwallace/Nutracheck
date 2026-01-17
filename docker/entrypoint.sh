@@ -22,7 +22,7 @@ fi
 echo "Environment variables validated successfully"
 echo ""
 
-# Decide mode: webapp (default) or cron
+# Decide mode: webapp (default), cron, or mcp
 if [ "${MODE:-webapp}" = "cron" ]; then
     echo "=== CRON MODE ==="
 
@@ -56,6 +56,51 @@ if [ "${MODE:-webapp}" = "cron" ]; then
     # Start cron in foreground
     echo "Starting cron scheduler..."
     cron && tail -f /var/log/cron.log
+
+elif [ "${MODE:-webapp}" = "mcp" ]; then
+    echo "=== MCP AUTOMATION SERVICE MODE ==="
+    echo "AI-powered browser automation with Nutracheck"
+    echo ""
+
+    # Verify AI provider configuration
+    AI_PROVIDER="${AI_PROVIDER:-claude}"
+    echo "AI Provider: $AI_PROVIDER"
+
+    case "$AI_PROVIDER" in
+        claude)
+            if [ -z "$ANTHROPIC_API_KEY" ]; then
+                echo "ERROR: ANTHROPIC_API_KEY environment variable is required for Claude!"
+                exit 1
+            fi
+            echo "Using Claude (Anthropic)"
+            ;;
+        openai)
+            if [ -z "$OPENAI_API_KEY" ]; then
+                echo "ERROR: OPENAI_API_KEY environment variable is required for OpenAI!"
+                exit 1
+            fi
+            echo "Using OpenAI GPT"
+            ;;
+        google)
+            if [ -z "$GOOGLE_API_KEY" ]; then
+                echo "ERROR: GOOGLE_API_KEY environment variable is required for Google!"
+                exit 1
+            fi
+            echo "Using Google Gemini"
+            ;;
+        *)
+            echo "ERROR: Unknown AI_PROVIDER: $AI_PROVIDER (must be claude, openai, or google)"
+            exit 1
+            ;;
+    esac
+
+    echo ""
+    echo "Starting MCP server..."
+    echo "The server will communicate via stdio (standard input/output)"
+    echo ""
+
+    # Start MCP server - runs in foreground with stdio transport
+    exec python -m nutracheck.mcp.server
 
 else
     echo "=== WEB APP MODE ==="
