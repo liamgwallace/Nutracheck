@@ -1,5 +1,5 @@
-# Use Python 3.9 slim image
-FROM python:3.9-slim
+# Use Python 3.11 slim image (required for MCP and LangChain)
+FROM python:3.11-slim
 
 # Install Chrome and dependencies for Selenium
 RUN apt-get update && apt-get install -y \
